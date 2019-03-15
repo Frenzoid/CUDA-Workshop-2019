@@ -4,11 +4,13 @@
 
 #include <iostream>
 
+
 void suma_vectores_gpu(float* pA, float* pB, float* pC, const int cN) {
 	int idX_ = blockIdx.x * blockDim.x + threadIdx.x ; // La formula para atacar memorias = blockIdx.x * blockDim.x + threadIdx.x (la x es para porque es unidimensional (viene de un struct interno)).
 	pC[idX_] = pA[idX_] + pB[idX_];
 }
 
+__global__ // Decoradores (igual que en ts). Por defecto, cualquier cosa no decorada, se delcara como __host__.
 void suma_vectores(float* pA, float* pB, float* pC, const int cN) { // Funcion que suma vectores.
 	for (unsigned int i = 0; i < cN; i++) {
 		pC[i] = pA[i] + pB[i];
@@ -60,5 +62,7 @@ int main(void) {
 
 	dim3 tpb_(thread_per_block_, 1, 1);
 	dim3 bpg_(blocks_per_grid_, 1, 1);
+
+	suma_vectores_gpu <<< bgp_, tpb_ >>> (d_a_, d_b_, d_c_, kNumElemets);
 
 }
