@@ -38,9 +38,9 @@ int main(void) {
 	float* h_c_ = (float *)malloc(kNumBytes);
 
 	if (h_a_ == NULL || h_b_ == NULL || h_c_ == NULL) { // Comprobamos que el ordenador tiene memoria suficiente par alojar las variables.
-		std::cerr << "Fallo al reservar la memoria";
-		getchar();
-		exit(-1);
+		std::cerr << "Fallo al reservar la memoria \n";
+		getchar(); // Para que no se cierre la ventana nada mas mostrar el mensaje de error.
+		exit(-1); // Codigo de salida de error predefinido.
 	}
 
 	for (unsigned int i = 0; i < kNumElemets; i++) { // Rellenamos los vectores con datos aleatorios.
@@ -55,7 +55,7 @@ int main(void) {
 	// PASO 3: Lanzar kernel (ejecutar computo).
 	// FORMULA PARA LA DIRECCIONACION DE LA POSICION DE MEMORIA: 
 
-	//suma_vectores(h_a_, h_b_, h_c_, kNumElemets);
+	// suma_vectores(h_a_, h_b_, h_c_, kNumElemets);
 
 	const int thread_per_block_ = 256;
 	const int blocks_per_grid_ = kNumElemets / thread_per_block_;
@@ -64,5 +64,13 @@ int main(void) {
 	dim3 bpg_(blocks_per_grid_, 1, 1);
 
 	suma_vectores_gpu <<< bgp_, tpb_ >>> (d_a_, d_b_, d_c_, kNumElemets);
+	cudaError error_ = cudaGetLastError(); // Si hay un error, se guarda en una porcion de memoria de la GPU, esta funcion te devuelve este valor.
+
+	if (error_ != cudaSuccess) {
+		std::cerr << "Fallo en el kernel" << cudaGetErrorString(error_) << "\n";
+		getchar(); // Para que no se cierre la ventana nada mas mostrar el mensaje de error.
+		exit(-1); // Codigo de salida de error predefinido.
+	}
+
 
 }
