@@ -49,11 +49,10 @@ int main(void) {
 	}
 
 	// PASO 2: Copia de datos CPU a GPU.
-	cudaMemcpy(d_a_, h_a_, kNumBytes, cudaMemcpyHostToDevice); // Destino, Origen, Cantidad de bytes a copiar, flag que especifica en que direccion (de CPU a GPU).
-	cudaMemcpy(d_b_, h_b_, kNumBytes, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_a_, h_a_, kNumBytes, cudaMemcpyHostToDevice); // Mandamos los datos a la VRAM.
+	cudaMemcpy(d_b_, h_b_, kNumBytes, cudaMemcpyHostToDevice); // Destino, Origen, Cantidad de bytes a copiar, flag que especifica en que direccion (de CPU a GPU).
 
 	// PASO 3: Lanzar kernel (ejecutar computo).
-	// FORMULA PARA LA DIRECCIONACION DE LA POSICION DE MEMORIA: 
 
 	// suma_vectores(h_a_, h_b_, h_c_, kNumElemets);
 
@@ -63,7 +62,7 @@ int main(void) {
 	dim3 tpb_(thread_per_block_, 1, 1);
 	dim3 bpg_(blocks_per_grid_, 1, 1);
 
-	suma_vectores_gpu <<< bgp_, tpb_ >>> (d_a_, d_b_, d_c_, kNumElemets);
+	suma_vectores_gpu<<<bgp_, tpb_>>>(d_a_, d_b_, d_c_, kNumElemets);
 	cudaError error_ = cudaGetLastError(); // Si hay un error, se guarda en una porcion de memoria de la GPU, esta funcion te devuelve este valor.
 
 	if (error_ != cudaSuccess) {
@@ -72,5 +71,31 @@ int main(void) {
 		exit(-1); // Codigo de salida de error predefinido.
 	}
 
+	cudaMemcpy(h_c_, d_c_, kNumBytes, cudaMemcpyDeviceToHost); // Nos traemos los datos de vuelta de la VRAM.
+
+	// Comprobamos que los datos son los mismos.
+	for (unsigned int i = 0; i < kNumElemets; i++) {
+		if (fabs(h_a_[i] + h_b_[i] - h_c_[i]) > 1e-5) { // Si el valor rendondeado tiene un error mayor a un umbral (en este caso 1e-5), se ha calculado mal.
+			std::cerr << "Fallo en la posicion: " << i << "\n";
+			std::cerr << "Resultado es: " << h_c_[i] << "\n";
+			std::cerr << "Se esperaba: " << h_a_[i] + h_b_[i] << "\n";
+			getchar();
+			exit(-1);
+		}
+	}
+
+	// PASO 4: Librerar recursos. (destruir).
+	free(h_a_);
+	free(h_b_);
+	free(h_c_);
+
+	cudaFree(d_a_);
+	cudaFree(d_b_);
+	cudaFree(d_c_);
+
+	cudaDeviceReset(); // Elibera y resetea el dispositivo.
+
+	std::cout << "Óptimo \n"; // Mensaje de exito.
+	getchar();
 
 }
