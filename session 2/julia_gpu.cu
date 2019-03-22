@@ -66,8 +66,8 @@ __host__ __device__ int julia( int x, int y ) {
 
 __global__ void kernel( unsigned char *ptr ) {	
 	
-	int x = blockIdx.x;
-	int y = blockIdx.y;
+	int x = blockDim.x * blockIdx.x + threadIdx.x;
+	int y = blockDim.y * blockIdx.y + threadIdx.y;
 	int offset = y * (blockDim.x * gridDim.x) + x;
 
     // now calculate the value at that position
@@ -111,8 +111,8 @@ int main( void ) {
     HANDLE_ERROR( cudaMalloc( (void**)&dev_bitmap, bitmap.image_size() ) );
     data.dev_bitmap = dev_bitmap;
     
-	dim3    grid(DIM, DIM); // 1000 x 1000 matriz. 
-	dim3	block(1,1); // 1000 x 1000 hilos (1 hilo por pixel).
+	dim3    grid(DIM / 8, DIM / 8); // 1000 x 1000 matriz. 
+	dim3	block(8,8); // 1000 x 1000 hilos (1 hilo por pixel).
 	kernel<<< grid, block >>>( dev_bitmap );
     
 	HANDLE_ERROR( cudaMemcpy( bitmap.get_ptr(), dev_bitmap,
