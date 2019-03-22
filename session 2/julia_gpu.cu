@@ -32,6 +32,8 @@ double performancecounter_diff(LARGE_INTEGER *a, LARGE_INTEGER *b)
 struct cuComplex {
     float   r;
     float   i;
+
+	// Host y device son decoradores, por declararlos los dos, estamos definiendo esta funcion tanto para la CPU como para la GPU.
     __host__ __device__ cuComplex( float a, float b ) : r(a), i(b)  {}
     __host__ __device__ float magnitude2( void ) {
         return r * r + i * i;
@@ -64,11 +66,9 @@ __host__ __device__ int julia( int x, int y ) {
 
 __global__ void kernel( unsigned char *ptr ) {	
 	
-	// COMPLETAR!
-	//
-	int x = //TODO
-	int y = //TODO
-	int offset = y * (blockDim.x*gridDim.x) + x;
+	int x = blockIdx.x;
+	int y = blockIdx.y;
+	int offset = y * (blockDim.x * gridDim.x) + x;
 
     // now calculate the value at that position
     int juliaValue = julia( x, y );
@@ -111,25 +111,23 @@ int main( void ) {
     HANDLE_ERROR( cudaMalloc( (void**)&dev_bitmap, bitmap.image_size() ) );
     data.dev_bitmap = dev_bitmap;
     
-	// COMPLETAR
-	// TODO
-	dim3    grid();
-	dim3	block();
-	kernel<<< >>>( dev_bitmap );
+	dim3    grid(DIM, DIM); // 1000 x 1000 matriz. 
+	dim3	block(1,1); // 1000 x 1000 hilos (1 hilo por pixel).
+	kernel<<< grid, block >>>( dev_bitmap );
     
 	HANDLE_ERROR( cudaMemcpy( bitmap.get_ptr(), dev_bitmap,
                               bitmap.image_size(),
                               cudaMemcpyDeviceToHost ) );
     
 	// Detenemos los eventos y mostramos los tiempos
-  HANDLE_ERROR( cudaEventRecord( stop, 0 ) );
-  HANDLE_ERROR( cudaEventSynchronize( stop ) );
-  float   elapsedTime;
-  HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
-                                        start, stop ) );
-  printf( "Time consumido generacion fractal GPU:  %3.1f ms\n", elapsedTime );
+	HANDLE_ERROR( cudaEventRecord( stop, 0 ) );
+	HANDLE_ERROR( cudaEventSynchronize( stop ) );
+	float   elapsedTime;
+	HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
+									start, stop ) );
+	printf( "Time consumido generacion fractal GPU:  %3.1f ms\n", elapsedTime );
 	HANDLE_ERROR( cudaEventDestroy( start ) );
-  HANDLE_ERROR( cudaEventDestroy( stop ) );
+	HANDLE_ERROR( cudaEventDestroy( stop ) );
 	HANDLE_ERROR( cudaFree( dev_bitmap ) );
       
 	// Calculo CPU
@@ -138,12 +136,12 @@ int main( void ) {
 	unsigned char *ptr = bitmap2.get_ptr();
 
 	QueryPerformanceCounter(&t_ini);	
-  kernel_CPU( ptr );
-  QueryPerformanceCounter(&t_fin);
+	kernel_CPU( ptr );
+	QueryPerformanceCounter(&t_fin);
 
-  double cpu_runtime = performancecounter_diff(&t_fin, &t_ini);
-  printf( "Time consumido generacion fractal CPU:  %3.1f ms\n", cpu_runtime*1000);
+	double cpu_runtime = performancecounter_diff(&t_fin, &t_ini);
+	printf( "Time consumido generacion fractal CPU:  %3.1f ms\n", cpu_runtime*1000);
 
-  bitmap.display_and_exit();
+	bitmap.display_and_exit();
 }
 
